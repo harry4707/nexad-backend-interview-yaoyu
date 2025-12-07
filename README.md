@@ -16,8 +16,9 @@ All application code and comments are written in English. Documentation here aim
 
 ## Prerequisites
 - Option A: Docker + Docker Compose (recommended)
-- Option B: Native Python (3.11 or 3.12 recommended)
-  - Note: Python 3.14 may require building `pydantic-core` via Rust and can fail in some environments. Prefer 3.11/3.12 or use Docker.
+- Option B: Native Python (strongly recommend Python 3.11)
+  - Python 3.11 provides the smoothest experience for local dev with SQLite
+  - Python 3.14 may trigger `pydantic-core` build and transaction edge cases; prefer 3.11 or use Docker
 
 ## Quick Start (Docker Compose)
 1. Build and start the full stack:
@@ -38,10 +39,10 @@ All application code and comments are written in English. Documentation here aim
 ## Local Development (without Docker)
 This mode is convenient for editing and quick unit tests. There are two paths:
 
-### A. Testing mode (SQLite + fakeredis)
+### A. Testing mode (SQLite + fakeredis) — Python 3.11
 1. Create a virtual environment and install dependencies:
    - `cd adserver`
-   - `python3 -m venv .venv && . .venv/bin/activate`
+   - `python3.11 -m venv .venv311 && . .venv311/bin/activate`
    - `pip install -r requirements.txt -r requirements-dev.txt`
 2. Run unit tests:
    - `APP_TESTING=1 PYTHONPATH=. pytest -q tests/unit`
@@ -78,6 +79,23 @@ This mode is convenient for editing and quick unit tests. There are two paths:
   - `APP_TESTING=1 PYTHONPATH=. pytest -q adserver/tests/unit` (run from repo root)
 - End-to-End tests:
   - `docker compose run --rm tests`
+
+## Troubleshooting
+- Transaction error on events (`A transaction is already begun on this Session`):
+  - Use Python 3.11 for local testing mode (SQLite) or run via Docker/Postgres
+  - Ensure you’re not starting additional transactions manually in custom code
+- `pydantic-core` build failures on Python 3.14:
+  - Prefer Python 3.11; or set `PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1` when installing
+- `docker: command not found`:
+  - Install Docker Desktop and ensure `docker`/`docker compose` are in PATH
+- Frequency capping demo:
+  - Two impressions should succeed; the third should return `429`
+  - Example:
+    - `curl -X POST http://localhost:8000/events/ -H 'Content-Type: application/json' -d '{"campaign_id":1,"user_id":"u","event_type":"impression"}'`
+    - Repeat twice, the third call returns `429`
+
+## Data Types
+- Event response field `ts` is an ISO 8601 datetime string (FastAPI serializes `datetime` automatically).
 
 ## API Reference
 - See `docs/api.md` for endpoint details and error codes
