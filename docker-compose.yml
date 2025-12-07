@@ -1,0 +1,32 @@
+services:
+  app:
+    build: ./adserver
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=postgresql+psycopg://ad:ad@db:5432/adserver
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+  tests:
+    build: ./adserver
+    environment:
+      - APP_TESTING=1
+    command: pytest -q
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=ad
+      - POSTGRES_PASSWORD=ad
+      - POSTGRES_DB=adserver
+    ports:
+      - "5432:5432"
+    volumes:
+      - adserver-db-data:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+volumes:
+  adserver-db-data:
